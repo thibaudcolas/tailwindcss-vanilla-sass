@@ -5,72 +5,37 @@ const rawTailwindConfig = require("./tailwind.config");
 
 const tailwindConfig = resolveConfig(rawTailwindConfig);
 
-const themeToMap = (depth, [key, val]) => {
-  const indentation = "  ".repeat(depth);
-  const suffix = depth === 0 ? ";" : `,`;
-
-  const sassKey = isNaN(Number(key)) || key === "-0" ? `"${key}"` : Number(key);
-  const prefix = depth === 0 ? "$theme: " : `${indentation}${sassKey}: `;
-
-  let sassVal;
-  if (Array.isArray(val)) {
-    sassVal = `'${val.join(", ")}'`;
-  } else if (typeof val === "object") {
-    sassVal = `(\n${Object.entries(val)
-      .map(themeToMap.bind(null, depth + 1))
-      .join("\n")}\n${indentation})`;
-  } else {
-    sassVal = val.includes(",") ? `#{${val}}` : val;
-  }
-
-  return `${prefix}${sassVal}${suffix}`;
+const formatSassValue = (v) => {
+  const quoted = typeof v === "string" && (v.includes("/") || v.includes(","));
+  return quoted ? `"${v}"` : v;
 };
 
-const themeToVars = (prefix, [key, val]) => {
-  const sassKey = key.replace(/[.%,\/]/g, "\\$&");
-  if (key === "keyframes") {
-    return "";
-  }
-  if (Array.isArray(val)) {
-    return `$${prefix}-${sassKey}: ${val.join(", ")};\n`;
-  }
+/**
+ * Converts the Tailwind theme nested object to a flat Sass map,
+ * to use with a `theme()` function like Tailwind’s.
+ */
+const themeToSass = (prefix, [key, val]) => {
+  // For example, theme('spacing[0.5]').
+  const hasDot = key.includes(".");
+  key = hasDot ? `[${key}]` : key;
+  prefix = prefix ? `${prefix}${hasDot ? "" : "."}${key}` : key;
+
   if (typeof val === "object") {
-    return Object.entries(val)
-      .map(themeToVars.bind(null, prefix ? `${prefix}-${sassKey}` : sassKey))
-      .join("");
-  }
-  const sassVal =
-    typeof val === "string" && val.includes("/")
-      ? `list.slash(${val.replace("/", ",")})`
-      : val;
+    // For example, theme('fontFamily.mono').
+    // Commented out because all instances of this _should_ be safe to hand over to built-in Tailwind theme().
+    let arrayOutput = "";
+    // if (Array.isArray(val)) {
+    //   arrayOutput = `'${prefix}': '${val.map(formatSassValue).join(", ")}',\n`;
+    // }
 
-  return `$${prefix}-${sassKey}: ${sassVal};\n`;
+    const entries = Object.entries(val).map(themeToSass.bind(null, prefix));
+    return `${arrayOutput}${entries.join("")}`;
+  }
+
+  return `'${prefix}': ${formatSassValue(val)},\n`;
 };
 
-const themeToFunc = (prefix, [key, val]) => {
-  // if (key === "keyframes") {
-  //   return "";
-  // }
-  if (Array.isArray(val)) {
-    return `'${prefix}.${key}': '${val.join(", ")}',\n`;
-  }
-  if (typeof val === "object") {
-    return Object.entries(val)
-      .map(themeToFunc.bind(null, prefix ? `${prefix}.${key}` : key))
-      .join("");
-  }
-  const sassVal =
-    typeof val === "string" && (val.includes("/") || val.includes(","))
-      ? `'${val}'`
-      : val;
-
-  return `'${prefix}.${key}': ${sassVal},\n`;
-};
-
-console.log(tailwindConfig.theme.fontFamily);
-console.log(themeToMap(0, ["", tailwindConfig.theme.fontFamily]));
-console.log(themeToVars("", ["", tailwindConfig.theme.fontFamily]));
-console.log(themeToFunc("", ["", tailwindConfig.theme]));
+// console.log(themeToSass("", ["", tailwindConfig.theme]) )
 
 module.exports = {
   entry: "./src/main.js",
@@ -99,19 +64,15 @@ module.exports = {
             options: {
               additionalData: `
               @use "sass:map";
-              @use "sass:list";
               @use "sass:string";
-              ${themeToMap(0, [null, tailwindConfig.theme])}
-              ${themeToVars("", ["", tailwindConfig.theme])}
-              $funcTheme: (
-                ${themeToFunc("", ["", tailwindConfig.theme])}
-              );
-              @function sass-theme($key) {
-                @return map.get($funcTheme, $key);
-              }
-              $spacing: (${Object.entries(tailwindConfig.theme.spacing)
-                .map(([key, val]) => `"${key}": ${val},`)
-                .join("\n")});`,
+              $theme: (${themeToSass("", ["", tailwindConfig.theme])});
+              @function theme($path) {
+                $value: map.get($theme, $path);
+                @if $value != null {
+                  @return $value;
+                }
+                @return string.unquote("theme('#{$path}')");
+              }`,
             },
           },
         ],

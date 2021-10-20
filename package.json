@@ -4,7 +4,7 @@
   "description": "",
   "private": true,
   "scripts": {
-    "start": "webpack"
+    "start": "webpack --mode development"
   },
   "keywords": [],
   "author": "",

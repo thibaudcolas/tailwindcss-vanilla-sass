@@ -1,0 +1,21 @@
+@use "sass:color";
+@use './svg-uri' as *;
+
+$test: (
+  'one': 'a / b',
+  'two': a / b,
+);
+
+.cta-simple {
+  // Un-comment this line to try out what happens when using unknown properties:
+  // font-family: theme('fontFamily.monoo');
+  font-family: theme('fontFamily.mono');
+  // Retrieve the color like we normally would, except this now supports Sass operations.
+  $pink: theme('colors.pink.900');
+  $pink--darkened: color.adjust($pink, $saturation: -50%);
+  background-image: svg-uri('<svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" ><path fill="#{$pink--darkened}" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" /></svg>');
+
+  @screen md {
+    margin-left: theme('spacing.4') - theme('spacing[0.5]');
+  }
+}
