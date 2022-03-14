@@ -1,23 +1,43 @@
 {
-  "name": "sass-tailwind-sandbox",
-  "version": "1.0.0",
-  "description": "",
-  "private": true,
-  "scripts": {
-    "start": "webpack --mode development"
+  "name": "tailwindcss-vanilla-sass",
+  "version": "0.1.0",
+  "author": "Thibaud Colas",
+  "license": "MIT",
+  "description": "Simple right-to-left (RTL) language support, switching vanilla Tailwind utilities to CSS logical properties and values",
+  "homepage": "https://github.com/thibaudcolas/tailwindcss-vanilla-sass",
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "tailwind",
+    "tailwindcss",
+    "sass"
+  ],
+  "peerDependencies": {
+    "tailwindcss": "^3.0.0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
-    "css-loader": "^6.3.0",
-    "sass": "^1.42.1",
-    "sass-loader": "^12.1.0",
-    "style-loader": "^3.3.0",
-    "tailwindcss": "^2.2.16",
-    "webpack": "^5.56.0",
-    "webpack-cli": "^4.8.0",
-    "mini-css-extract-plugin": "^2.3.0",
-    "postcss-loader": "^6.1.1"
+    "@commitlint/cli": "16.2.1",
+    "@commitlint/config-conventional": "16.2.1",
+    "eslint": "8.10.0",
+    "jest": "27.5.1",
+    "prettier": "2.5.1",
+    "sass": "1.49.9",
+    "tailwindcss": "3.0.23"
+  },
+  "scripts": {
+    "prepare": "./.githooks/install.sh",
+    "build": "npm run build:lib && npm run build:demo",
+    "build:lib": "swc src --out-dir dist --delete-dir-on-start",
+    "build:demo": "tailwindcss --config demo/tailwind.config.js --output demo/out.css",
+    "prepublishOnly": "npm run build",
+    "format": "prettier --write '**/?(.)*.{css,scss,js,ts,tsx,json,yaml,yml,md,html}'",
+    "lint:js": "eslint --ext .js,.ts,.tsx --report-unused-disable-directives .",
+    "lint:format": "prettier --check '**/?(.)*.{css,scss,js,ts,tsx,json,yaml,yml,md}'",
+    "lint": "npm run lint:js && npm run lint:format",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "report:package": "npm pack --loglevel notice 2>&1 >/dev/null | sed -e 's/^npm notice //' && rm *.tgz"
   }
 }
